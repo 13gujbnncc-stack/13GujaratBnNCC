@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regiment Portal | Master Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;900&display=swap');
+        body { font-family: 'Outfit', sans-serif; background: #0a0a0a; color: white; }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .btn-amber { background: #fbbf24; color: #000; transition: all 0.3s; }
+        .btn-amber:hover { background: #f59e0b; transform: translateY(-2px); }
+    </style>
+</head>
+<body>
+
+    <nav class="p-6 flex justify-between items-center max-w-7xl mx-auto">
+        <h2 class="text-2xl font-black tracking-tighter italic text-amber-500">REGIMENT SYSTEM</h2>
+        <button onclick="loginAdmin()" class="bg-white/10 hover:bg-white/20 px-6 py-2 rounded-full text-xs font-bold tracking-widest uppercase border border-white/10">
+            🔐 Staff Access
+        </button>
+    </nav>
+
+    <div id="studentView" class="min-h-[80vh] flex flex-col items-center justify-center p-6">
+        <div class="glass p-10 md:p-16 rounded-[3rem] w-full max-w-xl text-center shadow-2xl">
+            <h1 class="text-5xl font-black mb-4 uppercase italic">VERIFY RECORD</h1>
+            <p class="text-xs tracking-[0.4em] opacity-40 mb-10">OFFICIAL UNIT DATABASE 2026</p>
+            
+            <input type="text" id="regInput" placeholder="ENTER REGIMENT ID" 
+                class="w-full p-6 bg-white/5 border border-white/10 rounded-2xl text-2xl font-bold text-center mb-6 outline-none focus:border-amber-500">
+            
+            <button onclick="checkResult()" class="w-full btn-amber py-5 rounded-2xl font-black text-xl shadow-lg shadow-amber-500/10">
+                VIEW MARKSHEET
+            </button>
+        </div>
+    </div>
+
+    <div id="adminSection" class="hidden min-h-screen bg-slate-50 text-slate-900 p-6 md:p-12">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex justify-between items-center mb-8 bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+                <h2 class="text-xl font-black uppercase tracking-tight text-indigo-900">Unit Master Dashboard</h2>
+                <button onclick="location.reload()" class="bg-red-500 text-white px-6 py-2 rounded-xl font-bold text-xs uppercase">Logout</button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+                <div class="bg-white p-8 rounded-[2.5rem] shadow-xl border-b-8 border-indigo-600">
+                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Step 1: Upload Excel (CSV)</h3>
+                    <input type="file" id="csvInput" accept=".csv" class="mb-6 block w-full text-xs">
+                    <button onclick="handleCSV()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold text-xs uppercase">Import Cadet Data</button>
+                </div>
+                <div class="bg-white p-8 rounded-[2.5rem] shadow-xl border-b-8 border-emerald-500">
+                    <h3 class="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-4">Step 2: Upload Student Photos</h3>
+                    <input type="file" id="photoInput" accept=".jpg, .jpeg" multiple class="mb-6 block w-full text-xs">
+                    <button onclick="handlePhotos()" class="w-full bg-emerald-500 text-white py-4 rounded-xl font-bold text-xs uppercase">Match & Sync Photos</button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-900 text-white uppercase italic">
+                        <tr><th class="p-6">Photo</th><th class="p-6">ID & Name</th><th class="p-6">Grading</th><th class="p-6">Certificate</th><th class="p-6 text-right">Status</th></tr>
+                    </thead>
+                    <tbody id="adminTable" class="divide-y divide-slate-100 font-bold"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="resModal" class="fixed inset-0 bg-black/98 hidden flex items-center justify-center p-4 z-[100]">
+        <div class="bg-white w-full max-w-lg rounded-[3.5rem] p-10 text-center relative text-slate-900">
+            <img id="resPhoto" class="w-32 h-32 rounded-[2rem] object-cover mx-auto mb-4 border-4 border-slate-100 shadow-xl" src="">
+            <h2 id="resName" class="text-3xl font-black uppercase text-slate-800 tracking-tighter"></h2>
+            <p id="resReg" class="text-indigo-600 font-bold font-mono text-sm mb-6"></p>
+            
+            <div class="bg-slate-50 p-6 rounded-3xl mb-6 text-left border text-[11px] font-bold space-y-1">
+                <div>COLLEGE: <span id="resCollege" class="text-slate-900 uppercase"></span></div>
+                <div>UNIT: <span id="resUnit" class="text-slate-900 uppercase"></span></div>
+                <div>DOB: <span id="resDOB" class="text-slate-900"></span></div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="bg-slate-900 rounded-3xl p-5 text-white text-left shadow-lg">
+                    <p class="text-[9px] opacity-40 font-black uppercase">Grand Total</p>
+                    <div id="resTotal" class="text-2xl font-black text-amber-500">0</div>
+                </div>
+                <div id="gradeBox" class="rounded-3xl p-5 text-white shadow-lg flex flex-col justify-center">
+                    <p class="text-[9px] opacity-40 font-black uppercase">Grade</p>
+                    <div id="resGrade" class="text-2xl font-black">--</div>
+                </div>
+            </div>
+
+            <div id="certContainer" class="hidden">
+                <a id="downloadBtn" href="#" target="_blank" class="block w-full bg-indigo-600 text-white py-5 rounded-3xl font-black uppercase text-sm mb-4 shadow-lg">
+                    📥 DOWNLOAD CERTIFICATE
+                </a>
+            </div>
+            
+            <button onclick="document.getElementById('resModal').classList.add('hidden')" class="font-black text-[10px] uppercase opacity-20 tracking-widest">Close Window</button>
+        </div>
+    </div>
+
+    <script>
+        const MASTER_KEY = 'REG_SYSTEM_MASTER_FINAL_V18';
+        
+        // Advanced Cleanup (Permanent Solution for Photo Match)
+        const normalize = (s) => s ? s.toString().toLowerCase().trim().replace(/[^a-z0-9]/g, '') : "";
+
+        function loginAdmin() {
+            const pass = prompt("Staff Access Password:");
+            if (pass === "admin123") {
+                document.getElementById('studentView').classList.add('hidden');
+                document.getElementById('adminSection').classList.remove('hidden');
+                renderTable();
+            }
+        }
+
+        function handleCSV() {
+            const file = document.getElementById('csvInput').files[0];
+            if (!file) return;
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(res) {
+                    const data = res.data.map(row => ({
+                        reg: (row.reg || "").trim(),
+                        name: (row.name || "").trim(),
+                        dob: (row.dob || "").trim(),
+                        college: (row.college || "").trim(),
+                        unit: (row.unit || "").trim(),
+                        cert: (row.certificate || "").trim(), // Certificate Link column
+                        grade: (row.grade || "FAIL").toUpperCase().trim(),
+                        photo: "",
+                        total: (parseInt(row.p1Prac)||0)+(parseInt(row.p2Writ)||0)+(parseInt(row.p2Prac)||0)+(parseInt(row.p3Writ)||0)+(parseInt(row.p4Writ)||0)+(parseInt(row.p4Prac)||0)
+                    })).filter(c => c.reg.length > 0);
+                    localStorage.setItem(MASTER_KEY, JSON.stringify(data));
+                    renderTable();
+                    alert("Data Imported! Now upload photos to match.");
+                }
+            });
+        }
+
+        async function handlePhotos() {
+            const files = Array.from(document.getElementById('photoInput').files);
+            let db = JSON.parse(localStorage.getItem(MASTER_KEY)) || [];
+            let matched = 0;
+
+            for (let file of files) {
+                const photoID = normalize(file.name.split('.').slice(0, -1).join('.'));
+                const idx = db.findIndex(c => normalize(c.reg) === photoID);
+
+                if (idx !== -1) {
+                    const base64 = await new Promise(r => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            // Compression logic to prevent storage errors
+                            const img = new Image();
+                            img.onload = () => {
+                                const canvas = document.createElement('canvas');
+                                canvas.width = 300; canvas.height = 300;
+                                canvas.getContext('2d').drawImage(img, 0, 0, 300, 300);
+                                r(canvas.toDataURL('image/jpeg', 0.8));
+                            };
+                            img.src = e.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                    db[idx].photo = base64;
+                    matched++;
+                }
+            }
+            localStorage.setItem(MASTER_KEY, JSON.stringify(db));
+            renderTable();
+            alert(`Sync Complete: ${matched} Photos Matched.`);
+        }
+
+        function renderTable() {
+            const db = JSON.parse(localStorage.getItem(MASTER_KEY)) || [];
+            const tbody = document.getElementById('adminTable');
+            tbody.innerHTML = db.map(s => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="p-6"><img src="${s.photo || 'https://via.placeholder.com/60?text=NA'}" class="w-10 h-10 rounded-xl object-cover"></td>
+                    <td class="p-6"><div>${s.reg}</div><div class="text-[9px] text-slate-400 uppercase">${s.name}</div></td>
+                    <td class="p-6 font-black">${s.grade}</td>
+                    <td class="p-6 text-[9px]">${s.cert ? '✅ LINK' : '❌ NO'}</td>
+                    <td class="p-6 text-right font-black text-[9px] ${s.photo ? 'text-emerald-500' : 'text-red-400'}">
+                        ${s.photo ? 'MATCHED' : 'MISSING'}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function checkResult() {
+            const val = normalize(document.getElementById('regInput').value);
+            const db = JSON.parse(localStorage.getItem(MASTER_KEY)) || [];
+            const cadet = db.find(c => normalize(c.reg) === val);
+            
+            if (cadet) {
+                document.getElementById('resPhoto').src = cadet.photo || 'https://via.placeholder.com/200?text=No+Photo';
+                document.getElementById('resName').innerText = cadet.name;
+                document.getElementById('resReg').innerText = cadet.reg;
+                document.getElementById('resDOB').innerText = cadet.dob;
+                document.getElementById('resCollege').innerText = cadet.college;
+                document.getElementById('resUnit').innerText = cadet.unit;
+                document.getElementById('resTotal').innerText = cadet.total;
+                document.getElementById('resGrade').innerText = cadet.grade;
+                
+                const gb = document.getElementById('gradeBox');
+                const g = cadet.grade;
+                gb.className = `rounded-3xl p-5 text-white ${g==='A'?'bg-emerald-500':g==='B'?'bg-blue-500':g==='C'?'bg-amber-500':'bg-red-500'}`;
+
+                // Certificate Button Logic
+                const certCont = document.getElementById('certContainer');
+                if (cadet.cert && cadet.cert.length > 5) {
+                    certCont.classList.remove('hidden');
+                    document.getElementById('downloadBtn').href = cadet.cert;
+                } else {
+                    certCont.classList.add('hidden');
+                }
+                
+                document.getElementById('resModal').classList.remove('hidden');
+            } else { alert("Regiment ID not found in system."); }
+        }
+    </script>
+</body>
+</html>
